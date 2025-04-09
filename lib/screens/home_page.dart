@@ -43,6 +43,28 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  //function add new task to local state & firestore database
+  Future<void> addTask() async {
+    final taskName = nameController.text.trim();
+
+    if (taskName.isNotEmpty) {
+      final newTask = {
+        'name': taskName,
+        'completed': false,
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+
+      //docRef gives us the insertion id from the document
+      final docRef = await db.collection('tasks').add(newTask);
+
+      //add the task locally
+      setState(() {
+        tasks.add({'id': docRef.id, ...newTask});
+      });
+      nameController.clear();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,7 +98,9 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Expanded(
-              child: Container(child: buildAddTaskSection(nameController)),
+              child: Container(
+                child: buildAddTaskSection(nameController, addTask),
+              ),
             ),
           ],
         ),
@@ -87,7 +111,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 //Build the section for adding tasks
-Widget buildAddTaskSection(nameController) {
+Widget buildAddTaskSection(nameController, addTask) {
   return Padding(
     padding: const EdgeInsets.all(12.0),
     child: Row(
@@ -102,7 +126,7 @@ Widget buildAddTaskSection(nameController) {
             ),
           ),
         ),
-        ElevatedButton(onPressed: null, child: Text('Add Task')),
+        ElevatedButton(onPressed: addTask, child: Text('Add Task')),
       ],
     ),
   );
