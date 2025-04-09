@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> {
     fetchTasks();
   }
 
-  //Fetch tasks  from the db and also update the tasks list in memory
+  //Fetch tasks from the db and also update the task list in memory
   Future<void> fetchTasks() async {
     final snapshots = await db.collection('tasks').orderBy('timestamp').get();
 
@@ -35,7 +35,7 @@ class _HomePageState extends State<HomePage> {
         snapshots.docs.map(
           (doc) => {
             'id': doc.id,
-            'name': doc['name'],
+            'name': doc.get('name'),
             'completed': doc.get('completed') ?? false,
           },
         ),
@@ -43,7 +43,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  //function add new task to local state & firestore database
+  //function add new tasks to local state & firestore database
   Future<void> addTask() async {
     final taskName = nameController.text.trim();
 
@@ -55,15 +55,40 @@ class _HomePageState extends State<HomePage> {
       };
 
       //docRef gives us the insertion id from the document
+
       final docRef = await db.collection('tasks').add(newTask);
 
-      //add the task locally
+      //add the tasks locally
       setState(() {
         tasks.add({'id': docRef.id, ...newTask});
       });
       nameController.clear();
     }
   }
+
+  //Update the completion status of the task in Firestore & locally
+  Future<void> updateTask(int index, bool completed) async {
+    final task = tasks[index];
+    await db
+          .collection('tasks')
+          .doc(task['id'])
+          .update({'completed': completed});
+
+    setState(() {
+      tasks[index]['completed'] = completed;
+    });
+  }
+  
+  //Delete the task from Firestore & locally
+  Future<void> removeTasks(int index) async {
+     final task = tasks[index];
+     await db.collection('tasks').doc(task['id']).delete();
+
+     setState(() {
+       tasks.removeAt(index);
+     });
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +146,7 @@ Widget buildAddTaskSection(nameController, addTask) {
             maxLength: 32,
             controller: nameController,
             decoration: InputDecoration(
-              labelText: ' Add Task',
+              labelText: 'Add Task',
               border: OutlineInputBorder(),
             ),
           ),
@@ -132,14 +157,32 @@ Widget buildAddTaskSection(nameController, addTask) {
   );
 }
 
-Widget buildTaskList(tasks) {
+Widget buildTaskList(tasks, updateTask) {
   return ListView.builder(
     physics: NeverScrollableScrollPhysics(),
-    shrinkWrap: true,
     itemCount: tasks.length,
     itemBuilder: (context, index) {
+      final task = tasks[index];
+
       return ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        leading: Icon(
+          task['completed'] ? Icons.check_circle : Icons.circle_outlined
+        ),
+        title: Text(
+          task['name'],
+          style: TextStyle(
+            decoration: task['completed'] ? TextDecoration.lineThrough : null,
+            fontSize: 22,
+          ),
+        ),
+        trailing: Row(children: [
+            Checkbox(
+              value: task['completed'],
+              onChanged: (value) => updateTask(index, value!),
+            ),
+            IconButton(),
+        ],)
       );
     },
   );
