@@ -157,7 +157,7 @@ Widget buildAddTaskSection(nameController, addTask) {
   );
 }
 
-Widget buildTaskList(tasks, updateTask) {
+Widget buildTaskList(tasks, updateTask, removeTasks) {
   return ListView.builder(
     physics: NeverScrollableScrollPhysics(),
     itemCount: tasks.length,
@@ -181,7 +181,10 @@ Widget buildTaskList(tasks, updateTask) {
               value: task['completed'],
               onChanged: (value) => updateTask(index, value!),
             ),
-            IconButton(),
+           IconButton(
+            icon: Icon(Icons.delete),
+            onPressed: () => removeTasks(index),
+            ),
         ],)
       );
     },
